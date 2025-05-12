@@ -7,28 +7,9 @@ import { save,open,ask } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import { Menu, MenuItem, Submenu } from '@tauri-apps/api/menu';
 import { Button, message } from 'antd';
-// import { load } from '@tauri-apps/plugin-store';
 import { invoke } from '@tauri-apps/api/core';
-import { appCacheDir } from '@tauri-apps/api/path';
-import { appConfigDir } from '@tauri-apps/api/path';
-const appConfigDirPath = await appConfigDir();
-const appCacheDirPath = await appCacheDir();
-import { resourceDir } from '@tauri-apps/api/path';
-const resourceDirPath = await resourceDir();
-import { tempDir } from '@tauri-apps/api/path';
-import { getCurrentWindow,Window  } from "@tauri-apps/api/window";
+import { getCurrentWindow  } from "@tauri-apps/api/window";
 
-
-
-//const ttttttt = await getCurrent();
-
-// when using `"withGlobalTauri": true`, you may use
-// const { onOpenUrl } = window.__TAURI__.deepLink;
-
-// await onOpenUrl((urls) => {
-//   console.log('deep link:', urls);
-//   alert(urls)
-// });
 
 getCurrentWindow().listen("my-window-event", ({ event, payload }) => {
   console.log(event)

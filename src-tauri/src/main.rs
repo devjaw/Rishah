@@ -3,5 +3,5 @@
 
 
 fn main() {
-    tldraw_lib::run()
+    rishah_lib::run()
 }
