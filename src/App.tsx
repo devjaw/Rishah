@@ -136,7 +136,7 @@ function App() {
     try {
       console.log(editor)
       if (!editor) return;
-      
+
       // Export the current drawing as a tldraw file (JSON)
       const exportedContent = editor.store.getSnapshot();
       const content = JSON.stringify(exportedContent);
@@ -153,10 +153,10 @@ function App() {
 
       // Use Tauri's dialog to let the user choose where to save the file
       const savePath = await save({
-        defaultPath: `${fileName}.tldraw`,
+        defaultPath: `${fileName}.tldr`,
         filters: [{
           name: 'TLDraw Files',
-          extensions: ['tldraw']
+          extensions: ['tldr']
         }]
       });
       
@@ -181,31 +181,28 @@ function App() {
       
       // Open file dialog, filter for .tldraw files
       const selected = await open({
-        filters: [{ name: 'Tldraw Files', extensions: ['tldraw'] }],
+        filters: [{ name: 'Tldraw Files', extensions: ['tldr'] }],
         multiple: false
       });
       
-      // Check if a file was selected (user didn't cancel)
-      if (selected) {
-        console.log('Selected file:', selected);
-        
-        // Read the file content
-        const fileContent = await readTextFile(selected.toString());
-        
-        // Parse the JSON content
-        const tldrawData = JSON.parse(fileContent);
-        
-        // Load the data into tldraw
-        // This depends on how you've initialized tldraw in your app
-        // Example: loadTldrawContent(tldrawData);
-        console.log('Loaded tldraw data:', tldrawData);
-        
-        // If you have a reference to the tldraw instance:
-        editor.loadSnapshot(tldrawData);
+    if(!selected)
+      return;
 
-        setCurrentFilePath(selected?.toString());
-      }
+      // Check if a file was selected (user didn't cancel)
+      
+
+        // Read the file content
+      const fileContent:any = await readTextFile(selected.toString());
+      const tldrawData = JSON.parse(fileContent);
+      let finalJson = tldrawData;
+
+      editor.store.loadSnapshot(finalJson);
+
+      setCurrentFilePath(selected?.toString());
+
     } catch (error) {
+      //setCurrentFilePath(null)
+      alert("was not able to open the file. the tldr version is mismatch with app version.please download latest version")
       console.error('Error opening file:', error);
       // You might want to show an error message to the user
     }

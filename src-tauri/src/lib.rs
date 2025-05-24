@@ -30,7 +30,7 @@ fn get_startup_args() -> Vec<String> {
     
     // Filter for .tldraw files and normalize paths
     processed_args.into_iter()
-        .filter(|arg| arg.to_lowercase().ends_with(".tldraw") || arg.to_lowercase().ends_with(".tldraw\\"))
+        .filter(|arg| arg.to_lowercase().ends_with(".tldr") || arg.to_lowercase().ends_with(".tldr\\"))
         .map(|path| {
             // Remove trailing backslash if present
             let clean_path = path.trim_end_matches('\\').to_string();

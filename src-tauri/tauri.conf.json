@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Rishah",
-  "version": "0.1.0",
-  "identifier": "com.tldraw.app",
+  "version": "0.1.1",
+  "identifier": "com.rishah.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -33,7 +33,7 @@
     ],
     "fileAssociations": [
       {
-        "ext": ["tldraw"],
+        "ext": ["tldr"],
         "name": "TLDraw File",
         "role": "Editor",
         "mimeType": "application/octet-stream"

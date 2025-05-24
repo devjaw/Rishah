@@ -1,7 +1,7 @@
 {
-  "name": "tldraw",
+  "name": "rishah",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -19,7 +19,7 @@
     "antd": "^5.25.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tldraw": "^3.12.1"
+    "tldraw": "3.13.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
