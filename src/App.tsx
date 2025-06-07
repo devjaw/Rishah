@@ -6,7 +6,7 @@ import 'tldraw/tldraw.css'
 import { save,open,ask } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import { Menu, MenuItem, Submenu } from '@tauri-apps/api/menu';
-import { Button, message } from 'antd';
+import { Button, message,Popover } from 'antd';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow  } from "@tauri-apps/api/window";
 
@@ -283,6 +283,14 @@ function App() {
       )
     },
   }
+
+
+  const content = (
+    <div style={{ marginTop: '-25px' }}>
+      <p>Draw line from shape</p>
+    </div>
+    
+);
   
   function DuplicateInDirectionButton({
     x,
@@ -295,25 +303,7 @@ function App() {
   }) {
     const editor = useEditor()
     return (
-  
-      
-    //    <Button
-    //    className="flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold shadow-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300"
-    //    style={{
-    //      position: 'absolute',
-    //      width: '32px',
-    //      height: '32px',
-    //      pointerEvents: 'all',
-    //      transform: `translate(${x}px, ${y}px) rotate(${rotation}rad)`,
-    //    }}
-    //    onPointerDown={stopEventPropagation}
-    //    onClick={() => {
-    //      DuplicateShape(rotation, editor);
-    //    }}
-    //  >
-    //    <span className="font-extrabold text-lg flex items-center justify-center w-full h-full">→</span>
-    //  </Button>
-
+<Popover content={content}  styles={{ body: {height: '5px'} }}>
 <Button
 shape="circle"
 style={{
@@ -344,7 +334,7 @@ onClick={() => {
         marginTop: '-2px'
       }}>→</span>
 </Button>
-  
+  </Popover>
   
       // <button
       // 	style={{
