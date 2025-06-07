@@ -196,7 +196,7 @@ function App() {
       const tldrawData = JSON.parse(fileContent);
       let finalJson = tldrawData;
 
-      editor.store.loadSnapshot(finalJson);
+      editor.loadSnapshot(finalJson);
 
       setCurrentFilePath(selected?.toString());
 
@@ -534,10 +534,7 @@ onClick={() => {
             setEditor(editor)
             console.log("new editor set")
           }
-          // else{
-          //   setEditor(null)
-          //   setCurrentFilePath(null)
-          // }
+          editor.user.updateUserPreferences({ isSnapMode: true })
           }} components={components} />
       </div>
     </div>
