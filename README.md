@@ -2,6 +2,8 @@
 
 A powerful desktop drawing and whiteboarding application built with Tauri and tldraw. This cross-platform app brings the intuitive tldraw sketching experience to your desktop with native performance and offline capabilities.
 
+![Screenshot](./screenshots/1.png)
+
 ## Download and Installation
 [Releases](https://github.com/devjaw/Rishah/releases) page
 
