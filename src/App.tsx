@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Editor, Tldraw, hardReset } from 'tldraw'
+import { Editor, Tldraw, hardReset,parseTldrawJsonFile,createTLSchema } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { save,open,ask } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
@@ -74,8 +74,8 @@ function App() {
             },
           }),
           await MenuItem.new({
-            id: 'save_as',
-            text: 'Save As...',
+            id: 'save',
+            text: 'Save',
             action: () => {
               handleSave(); // Changed from this.handleSave() to handleSave()
             },
@@ -126,14 +126,12 @@ function App() {
       console.log(editor)
       if (!editor) return;
 
-      // Export the current drawing as a tldraw file (JSON)
-      const exportedContent = editor.store.getSnapshot();
-      const content = JSON.stringify(exportedContent);
-      
-      console.log(currentFilePath)
-
+      const DataToSave = await prepareFileForSave()
+      console.log(DataToSave)
+      if(!DataToSave) return;
+  
       if(currentFilePath){
-        await writeTextFile(currentFilePath?.toString(), content);
+        await writeTextFile(currentFilePath?.toString(), DataToSave);
         success();
         return;
       }
@@ -153,7 +151,7 @@ function App() {
       if (!savePath) return;
       
       // Write the tldraw file to the selected location
-      await writeTextFile(savePath, content);
+      await writeTextFile(savePath, DataToSave);
       setCurrentFilePath(savePath);
 
       
@@ -162,6 +160,27 @@ function App() {
       console.error('Error saving file:', error);
     }
   };
+
+  async function prepareFileForSave(){
+    if (!editor) return;
+    const exportedContent = editor?.getSnapshot();
+    const store = exportedContent.document.store
+    const schema = exportedContent.document.schema
+    let records = [];
+		for (const record of Object.values(store)) {
+      console.log(record)
+      records.push(record);
+		}
+		const body = JSON.stringify(
+				{
+					schema: schema,
+					records: records,
+          tldrawFileFormatVersion:1
+				}
+      )
+
+    return body;
+  }
 
   const handleOpen = async () =>{
     try {
@@ -177,19 +196,16 @@ function App() {
     if(!selected)
       return;
 
-      // Check if a file was selected (user didn't cancel)
-      
-
         // Read the file content
       const fileContent:any = await readTextFile(selected.toString());
-      const tldrawData = JSON.parse(fileContent);
-      let finalJson = tldrawData;
 
-      editor.loadSnapshot(finalJson);
+      const parseFileResult = parseTldrawJsonFile({ json: fileContent, schema: createTLSchema() });
+      const snapshot = parseFileResult.value.getStoreSnapshot()
+		  editor.loadSnapshot(snapshot)
 
       setCurrentFilePath(selected?.toString());
 
-    } catch (error) {
+    } catch (error) {    
       //setCurrentFilePath(null)
       alert("was not able to open the file. the tldr version is mismatch with app version.please download latest version")
       console.error('Error opening file:', error);
