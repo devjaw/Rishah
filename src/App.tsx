@@ -200,6 +200,7 @@ function App() {
       const fileContent:any = await readTextFile(selected.toString());
 
       const parseFileResult = parseTldrawJsonFile({ json: fileContent, schema: createTLSchema() });
+      // @ts-ignore
       const snapshot = parseFileResult.value.getStoreSnapshot()
 		  editor.loadSnapshot(snapshot)
 
