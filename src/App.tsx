@@ -14,6 +14,7 @@ getCurrentWindow().listen("my-window-event", ({ event, payload }) => {
   console.log(payload)
  });
 
+
 function App() {
   const [fileName, setFileName] = useState('drawing');
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -134,6 +135,61 @@ function App() {
         window.removeEventListener('keydown', handleKeyDown);
       };
     }, [currentFilePath,editor]); // Include currentFilePath in dependencies
+
+  // Handle window close event
+  useEffect(() => {
+    const setupCloseHandler = async () => {
+      const unlisten = await getCurrentWindow().onCloseRequested(async (event) => {
+        console.log("Close requested");
+        
+        // Prevent the window from closing initially
+        event.preventDefault();
+        
+        // Show save dialog
+        try {
+          const answer = await ask('Do you want to save your changes before closing?', {
+            title: 'Save Changes',
+            kind: 'warning',
+          });
+          
+          if (answer) {
+            // User wants to save
+            try {
+              await handleSave();
+              console.log("Saved successfully, now closing");
+            } catch (error) {
+              console.error('Error saving before close:', error);
+            }
+          } else {
+            // User chose not to save
+            console.log("User chose not to save");
+          }
+          
+          // After handling the dialog, close the window by destroying it
+          await getCurrentWindow().destroy();
+          
+        } catch (error) {
+          console.error('Error handling close request:', error);
+          // If there's an error, try to close anyway
+          try {
+            await getCurrentWindow().destroy();
+          } catch (destroyError) {
+            console.error('Error destroying window:', destroyError);
+          }
+        }
+      });
+
+      // Return cleanup function
+      return unlisten;
+    };
+
+    let unlistenPromise = setupCloseHandler();
+
+    return () => {
+      // Cleanup the event listener
+      unlistenPromise.then(unlisten => unlisten?.());
+    };
+  }, [handleSave]); // Include handleSave in dependencies
   
     async function handleSave(){
     try {
