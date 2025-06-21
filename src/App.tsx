@@ -190,6 +190,21 @@ function App() {
       unlistenPromise.then(unlisten => unlisten?.());
     };
   }, [handleSave]); // Include handleSave in dependencies
+
+  // Update window title when file path changes
+  useEffect(() => {
+    const updateTitle = async () => {
+      const window = getCurrentWindow();
+      if (currentFilePath) {
+        const filename = currentFilePath.split('/').pop() || currentFilePath.split('\\').pop();
+        await window.setTitle(`Rishah - ${filename}`);
+      } else {
+        await window.setTitle('Rishah - Untitled');
+      }
+    };
+    
+    updateTitle();
+  }, [currentFilePath]);
   
     async function handleSave(){
     try {
