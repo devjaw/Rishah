@@ -80,6 +80,13 @@ function App() {
               handleSave(); // Changed from this.handleSave() to handleSave()
             },
           }),
+          await MenuItem.new({
+            id: 'save-as',
+            text: 'Save As',
+            action: () => {
+              handleSaveAs();
+            },
+          }),
         ],
       });
 
@@ -101,14 +108,21 @@ function App() {
  
 
   
-    //Handle Ctrl+S keyboard shortcut
+    //Handle Ctrl+S and Ctrl+Shift+S keyboard shortcuts
     useEffect(() => {
       const handleKeyDown = async (e:any) => {
-         // Prevent browser's save dialog
-        // Check for Ctrl+S (or Cmd+S on Mac)
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        // Check for Ctrl+Shift+S or Cmd+Shift+S (Save As)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 's') {
           e.preventDefault();
-          handleSave()
+          handleSaveAs();
+          return;
+        }
+        
+        // Check for Ctrl+S or Cmd+S (Save)
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 's') {
+          e.preventDefault();
+          handleSave();
+          return;
         }
       };
   
@@ -154,6 +168,39 @@ function App() {
       await writeTextFile(savePath, DataToSave);
       setCurrentFilePath(savePath);
 
+      
+      console.log(`File saved successfully to: ${savePath}`);
+    } catch (error) {
+      console.error('Error saving file:', error);
+    }
+  };
+
+  async function handleSaveAs(){
+    try {
+      console.log(editor)
+      if (!editor) return;
+
+      const DataToSave = await prepareFileForSave()
+      console.log(DataToSave)
+      if(!DataToSave) return;
+
+      // Use Tauri's dialog to let the user choose where to save the file
+      const savePath = await save({
+        defaultPath: `${fileName}.tldr`,
+        filters: [{
+          name: 'TLDraw Files',
+          extensions: ['tldr']
+        }]
+      });
+      
+      // If the user cancelled the dialog, savePath will be null
+      if (!savePath) return;
+      
+      // Write the tldraw file to the selected location
+      await writeTextFile(savePath, DataToSave);
+      setCurrentFilePath(savePath);
+
+      success();
       
       console.log(`File saved successfully to: ${savePath}`);
     } catch (error) {
