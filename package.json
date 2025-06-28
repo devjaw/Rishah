@@ -1,7 +1,7 @@
 {
   "name": "rishah",
   "private": true,
-  "version": "0.2.3",
+  "version": "0.2.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -19,12 +19,12 @@
     "antd": "^5.25.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tldraw": "3.13.1"
+    "tldraw": "3.13.3"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
-    "@types/react": "^18.3.1",
-    "@types/react-dom": "^18.3.1",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "~5.6.2",
     "vite": "^6.0.3"
