@@ -16,11 +16,10 @@ getCurrentWindow().listen("my-window-event", ({ event, payload }) => {
 
 
 function App() {
-  const [fileName, setFileName] = useState('drawing');
   const [editor, setEditor] = useState<Editor | null>(null);
   const [currentFilePath, setCurrentFilePath] = useState<String | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
-
+  const defaultFileName = 'drawing';
 
   const success = () => {
     messageApi.open({
@@ -31,27 +30,14 @@ function App() {
 
 
   useEffect(() => {
-    console.log("call use effect")
-    console.log(editor)
      const fetchData = async () => {
-      let a:any = await invoke('get_startup_args');
-      //alert(a)
-      console.log(a)
-      if(a && a.length > 0){
-        const content = await readTextFile(a[0]);
-        const data = JSON.parse(content);
-        console.log(editor)
-        console.log("test")
-        if (!editor) return;
-        editor.loadSnapshot(data);
-        setCurrentFilePath(a[0]);
+      let userSelectedFile:any = await invoke('get_startup_args');
+      if(userSelectedFile && userSelectedFile.length > 0){
+        await loadTldrawFile(userSelectedFile[0])
+        setCurrentFilePath(userSelectedFile[0]);
       }
      }
-     fetchData()
-    setFileName("drawing")
-    console.log("test")
-    console.log(editor)
-    
+    fetchData()
   }, [editor]);
 
   const initializeMenu = async () => {
@@ -225,7 +211,7 @@ function App() {
 
       // Use Tauri's dialog to let the user choose where to save the file
       const savePath = await save({
-        defaultPath: `${fileName}.tldr`,
+        defaultPath: `${defaultFileName}.tldr`,
         filters: [{
           name: 'TLDraw Files',
           extensions: ['tldr']
@@ -257,7 +243,7 @@ function App() {
 
       // Use Tauri's dialog to let the user choose where to save the file
       const savePath = await save({
-        defaultPath: `${fileName}.tldr`,
+        defaultPath: `${defaultFileName}.tldr`,
         filters: [{
           name: 'TLDraw Files',
           extensions: ['tldr']
@@ -301,28 +287,18 @@ function App() {
   }
 
   const handleOpen = async () =>{
-    try {
-      // Import Tauri dialog API
-      if (!editor) return;
-      
+    try {     
       // Open file dialog, filter for .tldraw files
       const selected = await open({
         filters: [{ name: 'Tldraw Files', extensions: ['tldr'] }],
         multiple: false
       });
       
-    if(!selected)
-      return;
+      if(!selected)
+        return;
 
-        // Read the file content
-      const fileContent:any = await readTextFile(selected.toString());
+      await loadTldrawFile(selected.toString())
 
-      const parseFileResult = parseTldrawJsonFile({ json: fileContent, schema: createTLSchema() });
-      // @ts-ignore
-      const snapshot = parseFileResult.value.getStoreSnapshot()
-		  editor.loadSnapshot(snapshot)
-
-      setCurrentFilePath(selected?.toString());
 
     } catch (error) {    
       //setCurrentFilePath(null)
@@ -330,6 +306,16 @@ function App() {
       console.error('Error opening file:', error);
       // You might want to show an error message to the user
     }
+  }
+
+  const loadTldrawFile = async (data:string) => {
+    if (!editor) return;
+    const fileContent:any = await readTextFile(data);
+    const parseFileResult = parseTldrawJsonFile({ json: fileContent, schema: createTLSchema() });
+    console.log(parseFileResult)
+    // @ts-ignore
+    const snapshot = parseFileResult.value.getStoreSnapshot()
+    editor.loadSnapshot(snapshot)
   }
 
   const handleNew = async () =>{
