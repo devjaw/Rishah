@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Editor, Tldraw, hardReset,parseTldrawJsonFile,createTLSchema } from 'tldraw'
+import { Editor, Tldraw, hardReset,parseTldrawJsonFile,createTLSchema, TLUiOverrides, TLComponents, useTools, useIsToolSelected, DefaultToolbar, TldrawUiMenuItem, DefaultToolbarContent, DefaultKeyboardShortcutsDialog, DefaultKeyboardShortcutsDialogContent, TLUiAssetUrlOverrides } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { save,open,ask } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
@@ -8,6 +8,7 @@ import { message } from 'antd';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow  } from "@tauri-apps/api/window";
 import { shapeButtons } from "./components/tldraw/shapeButtons";
+import { IconsTool } from './components/tldraw/IconButton'
 
 getCurrentWindow().listen("my-window-event", ({ event, payload }) => {
   console.log(event)
@@ -15,11 +16,53 @@ getCurrentWindow().listen("my-window-event", ({ event, payload }) => {
  });
 
 
+ export const customAssetUrls: TLUiAssetUrlOverrides = {
+	icons: {
+		'heart-icon': '/heart-icon.svg',
+	},
+}
+
+// [4]
+const customTools = [IconsTool]
+
 function App() {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [currentFilePath, setCurrentFilePath] = useState<String | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
   const defaultFileName = 'drawing';
+
+
+const uiOverrides: TLUiOverrides = {
+	tools(editor, tools) {
+		// Create a tool item in the ui's context.
+		tools.icons = {
+			id: 'icons',
+			icon: 'heart-icon',
+			label: 'Icons',
+			onSelect: () => {
+				editor.setCurrentTool('icons')
+			},
+		}
+		return tools
+	},
+}
+
+
+const components: TLComponents = {
+	Toolbar: (props) => {
+		const tools = useTools()
+		const isIconsSelected = useIsToolSelected(tools['icons'])
+		return (
+			<DefaultToolbar {...props}>
+        <TldrawUiMenuItem {...tools['icons']} isSelected={isIconsSelected}/>
+				<DefaultToolbarContent />
+        
+			</DefaultToolbar>
+		)
+	}
+}
+
+
 
   const success = () => {
     messageApi.open({
@@ -358,7 +401,13 @@ function App() {
             console.log("new editor set")
           }
           editor.user.updateUserPreferences({ isSnapMode: true })
-          }} components={shapeButtons} />
+          }} tools={customTools}
+				// Pass in our ui overrides
+				overrides={uiOverrides}
+				// pass in our custom components
+				components={{...components,...shapeButtons}}
+				// pass in our custom asset urls
+				assetUrls={customAssetUrls} />
       </div>
     </div>
   
