@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
 import { StateNode, TLImageShape, AssetRecordType, createShapeId} from 'tldraw';
-import { Modal } from 'antd';
+import { Modal, Tooltip, Input } from 'antd';
 import * as LucideIcons from 'lucide-react';
 import { DynamicIcon, iconNames,IconName } from 'lucide-react/dynamic';
 
@@ -13,41 +13,38 @@ export class IconsTool extends StateNode {
   
   override onEnter() {
     this.editor.setCursor({ type: 'cross', rotation: 0 });
+    this.editor.setCurrentTool('select')
 
-//import { DynamicIcon, iconNames,IconName } from 'lucide-react/dynamic';
-const convertLucideToSVG = (iconName:IconName, props = {}) => {
-  
-
-
-  const pas:IconName = toPascalCase(iconName) as IconName;
-  //const IconComponent = LucideIcons[iconName];
-  const IconComponent = LucideIcons[pas];
-  
-  if (!IconComponent) {
-    throw new Error(`Icon "${iconName}" not found`);
-  }
-  
-  const defaultProps = {
-    size: 24,
-    color: 'currentColor',
-    strokeWidth: 2,
-    ...props
-  };
-  
-  const iconElement = React.createElement(IconComponent, defaultProps);
-  const svgString = ReactDOMServer.renderToStaticMarkup(iconElement);
-  
-  return svgString;
-};
-
-      const toPascalCase = (str:IconName) => {
-        return str.replace(/(^\w|[-_]\w)/g, (match) => 
-          match.replace(/[-_]/, '').toUpperCase()
-        );
-      };
+    const convertLucideToSVG = (iconName:IconName, props = {}) => {
 
 
 
+    const pas:IconName = toPascalCase(iconName) as IconName;
+    //const IconComponent = LucideIcons[iconName];
+    const IconComponent = LucideIcons[pas];
+
+    if (!IconComponent) {
+      throw new Error(`Icon "${iconName}" not found`);
+    }
+
+    const defaultProps = {
+      size: 24,
+      color: 'currentColor',
+      strokeWidth: 2,
+      ...props
+    };
+
+    const iconElement = React.createElement(IconComponent, defaultProps);
+    const svgString = ReactDOMServer.renderToStaticMarkup(iconElement);
+
+    return svgString;
+    };
+
+    const toPascalCase = (str:IconName) => {
+      return str.replace(/(^\w|[-_]\w)/g, (match) => 
+        match.replace(/[-_]/, '').toUpperCase()
+      );
+    };
 
     const handleIconSelect = async(iconName: IconName) => {
       console.log(iconName)
@@ -96,29 +93,49 @@ const convertLucideToSVG = (iconName:IconName, props = {}) => {
         },
       });
       
-      this.editor.setCurrentTool('select')
+      
       this.editor.setSelectedShapes([ShapeId])
       modal.destroy();
     };
 
     console.log(iconNames)
-    const iconList = iconNames.map((iconName) => {
+    const IconPicker = () => {
+      const [searchTerm, setSearchTerm] = React.useState('');
+
+      const filteredIcons = iconNames.filter((iconName) =>
+        iconName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+      const iconList = filteredIcons.map((iconName) => {
+        return (
+          <Tooltip title={iconName} key={iconName}>
+            <div onClick={() => handleIconSelect(iconName)} style={{ cursor: 'pointer', padding: '8px', border: '1px solid #eee', borderRadius: '4px' }}>
+              <DynamicIcon name={iconName} size={20} />
+            </div>
+          </Tooltip>
+        );
+      });
+
       return (
-        <div key={iconName} onClick={() => handleIconSelect(iconName)} style={{ cursor: 'pointer', padding: '8px', border: '1px solid #eee', borderRadius: '4px' }}>
-          <DynamicIcon name={iconName} size={20} />
+        <div>
+          <Input
+            prefix={<LucideIcons.Search size={20} />}
+            placeholder="Search icons..."
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ marginBottom: '16px' }}
+          />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', maxHeight: '400px', overflowY: 'auto' }}>
+            {iconList}
+          </div>
         </div>
       );
-    });
+    };
+    
     const modal = Modal.info({
       title: 'Select an Icon',
-      content: (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', maxHeight: '400px', overflowY: 'auto' }}>
-          {iconList}
-        </div>
-      ),
+      content: <IconPicker />,
       onOk() {},
-      okText: 'Close',
-      width: 800,
+      okText: 'Close'
     });
   }
 

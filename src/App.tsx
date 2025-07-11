@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Editor, Tldraw, hardReset,parseTldrawJsonFile,createTLSchema, TLUiOverrides, TLComponents, useTools, useIsToolSelected, DefaultToolbar, TldrawUiMenuItem, DefaultToolbarContent, DefaultKeyboardShortcutsDialog, DefaultKeyboardShortcutsDialogContent, TLUiAssetUrlOverrides } from 'tldraw'
+import { Editor, Tldraw, hardReset,parseTldrawJsonFile,createTLSchema, TLUiOverrides, TLComponents, useTools, useIsToolSelected, DefaultToolbar, TldrawUiMenuItem, DefaultToolbarContent, DefaultKeyboardShortcutsDialog, DefaultKeyboardShortcutsDialogContent, TLUiAssetUrlOverrides, TldrawProps } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { save,open,ask } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
@@ -9,6 +9,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow  } from "@tauri-apps/api/window";
 import { shapeButtons } from "./components/tldraw/shapeButtons";
 import { IconsTool } from './components/tldraw/IconButton'
+import iconS from './assets/pen-tool.png'
 
 getCurrentWindow().listen("my-window-event", ({ event, payload }) => {
   console.log(event)
@@ -18,7 +19,7 @@ getCurrentWindow().listen("my-window-event", ({ event, payload }) => {
 
  export const customAssetUrls: TLUiAssetUrlOverrides = {
 	icons: {
-		'heart-icon': '/heart-icon.svg',
+		'toolbox-icons': iconS,
 	},
 }
 
@@ -31,13 +32,12 @@ function App() {
   const [messageApi, contextHolder] = message.useMessage();
   const defaultFileName = 'drawing';
 
-
 const uiOverrides: TLUiOverrides = {
 	tools(editor, tools) {
 		// Create a tool item in the ui's context.
 		tools.icons = {
 			id: 'icons',
-			icon: 'heart-icon',
+			icon: 'toolbox-icons',
 			label: 'Icons',
 			onSelect: () => {
 				editor.setCurrentTool('icons')
