@@ -9,8 +9,6 @@ import { DynamicIcon, iconNames,IconName } from 'lucide-react/dynamic';
 export class IconsTool extends StateNode {
   static override id = 'icons';
 
-
-  
   override onEnter() {
     this.editor.setCursor({ type: 'cross', rotation: 0 });
     this.editor.setCurrentTool('select')
@@ -20,7 +18,7 @@ export class IconsTool extends StateNode {
 
 
     const pas:IconName = toPascalCase(iconName) as IconName;
-    //const IconComponent = LucideIcons[iconName];
+    // @ts-ignore
     const IconComponent = LucideIcons[pas];
 
     if (!IconComponent) {
@@ -51,7 +49,6 @@ export class IconsTool extends StateNode {
       const { currentPagePoint } = this.editor.inputs;
 
       // 1. Render the icon component to an SVG string
-//      const svgString = ReactDOMServer.renderToStaticMarkup(<Icon width={32} height={32} />);
       const pas:IconName = toPascalCase(iconName) as IconName;
       const svgString = convertLucideToSVG(pas)
         console.log(svgString)
@@ -84,6 +81,7 @@ export class IconsTool extends StateNode {
       this.editor.createShape<TLImageShape>({
         id:ShapeId,
         type: 'image',
+        meta: {type:'icon'},
         x: currentPagePoint.x - 50,
         y: currentPagePoint.y - 50,
         props: {
@@ -98,7 +96,6 @@ export class IconsTool extends StateNode {
       modal.destroy();
     };
 
-    console.log(iconNames)
     const IconPicker = () => {
       const [searchTerm, setSearchTerm] = React.useState('');
 

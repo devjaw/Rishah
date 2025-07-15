@@ -6,14 +6,21 @@ import { Button, Popover } from 'antd';
 
 
 export const shapeButtons: TLComponents = {
+  ImageToolbar: null,
     InFrontOfTheCanvas: () => {
-      
+      console.log("InFrontOfTheCanvas")
       const editor = useEditor()
-      //console.log(editor.getOnlySelectedShape())
+      console.log(editor.getOnlySelectedShape())
       if(!editor)
           return;
-      if(editor.getOnlySelectedShape()?.type !="geo")
+
+      let selectedShape = editor.getOnlySelectedShape()
+      if(!selectedShape)
+        return;
+
+      if(selectedShape?.type !="geo")
           return;
+      
       const info = useValue(
         'selection bounds',
         () => {
@@ -56,6 +63,9 @@ export const shapeButtons: TLComponents = {
       )
     },
 }
+
+
+
 
 
 const content = (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Editor, Tldraw, hardReset,parseTldrawJsonFile,createTLSchema, TLUiOverrides, TLComponents, useTools, useIsToolSelected, DefaultToolbar, TldrawUiMenuItem, DefaultToolbarContent, DefaultKeyboardShortcutsDialog, DefaultKeyboardShortcutsDialogContent, TLUiAssetUrlOverrides, TldrawProps } from 'tldraw'
+import { Editor, Tldraw, hardReset,parseTldrawJsonFile,createTLSchema, TLUiOverrides, TLComponents, useTools, useIsToolSelected,
+   DefaultToolbar, TldrawUiMenuItem, DefaultToolbarContent, TLUiAssetUrlOverrides } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { save,open,ask } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
@@ -10,6 +11,7 @@ import { getCurrentWindow  } from "@tauri-apps/api/window";
 import { shapeButtons } from "./components/tldraw/shapeButtons";
 import { IconsTool } from './components/tldraw/IconButton'
 import iconS from './assets/pen-tool.png'
+import { CustomStylePanel } from "./components/tldraw/customStylePanel";
 
 getCurrentWindow().listen("my-window-event", ({ event, payload }) => {
   console.log(event)
@@ -23,7 +25,6 @@ getCurrentWindow().listen("my-window-event", ({ event, payload }) => {
 	},
 }
 
-// [4]
 const customTools = [IconsTool]
 
 function App() {
@@ -126,9 +127,6 @@ const components: TLComponents = {
         ],
       });
       menu.setAsAppMenu();
-      // Do something with fileSubmenu, like saving it to state or using it
-    //  console.log('Menu initialized:', fileSubmenu);
-      // Example: setFileSubmenu(fileSubmenu);
     } catch (error) {
       console.error('Error initializing menu:', error);
     }
@@ -402,12 +400,10 @@ const components: TLComponents = {
           }
           editor.user.updateUserPreferences({ isSnapMode: true })
           }} tools={customTools}
-				// Pass in our ui overrides
 				overrides={uiOverrides}
-				// pass in our custom components
-				components={{...components,...shapeButtons}}
-				// pass in our custom asset urls
-				assetUrls={customAssetUrls} />
+				components={{...components,...shapeButtons,StylePanel:CustomStylePanel}}
+				assetUrls={customAssetUrls}
+         />
       </div>
     </div>
   
