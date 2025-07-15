@@ -4,7 +4,7 @@ import { Editor, Tldraw, hardReset,parseTldrawJsonFile,createTLSchema, TLUiOverr
 import 'tldraw/tldraw.css'
 import { save,open,ask } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
-import { Menu, MenuItem, Submenu } from '@tauri-apps/api/menu';
+import { Menu, Submenu, MenuItem } from '@tauri-apps/api/menu';
 import { message } from 'antd';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow  } from "@tauri-apps/api/window";
@@ -83,6 +83,19 @@ const components: TLComponents = {
      }
     fetchData()
   }, [editor]);
+
+  // Disable context menu
+  useEffect(() => {
+    const disableContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+    
+    window.addEventListener('contextmenu', disableContextMenu);
+    
+    return () => {
+      window.removeEventListener('contextmenu', disableContextMenu);
+    };
+  }, []);
 
   const initializeMenu = async () => {
     try {
