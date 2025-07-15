@@ -99,7 +99,7 @@ export const CustomStylePanel = () => {
                         // @ts-ignore
                         value={shapeColorName ? shapeColorName :  'black'} 
                         theme={theme} 
-                        onValueChange= {(e,color:string)=>{
+                        onValueChange= {(_e,color:string)=>{
                             const theme = getDefaultColorTheme({ isDarkMode: false });
                             // @ts-ignore
                             const b =  theme[color]?.solid || null;
