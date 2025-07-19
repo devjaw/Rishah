@@ -402,14 +402,14 @@ const components: TLComponents = {
   function handleCustomTldrawPaste(editor: Editor, { content, point }: TLTldrawExternalContent) {
     console.log(content)
     console.log(point)
-    let a = content.shapes.filter((v,i) => v.meta?.type != null)
+    let a = content.shapes.filter((v) => v.meta?.type != null)
     if(!a) return;
 
     a.forEach(b => {
       // @ts-ignore
       let currentAssetId = b.props?.assetId
       //const c = editor.getAsset(currentAssetId)
-      let getCurrentAsset = content.assets.filter((v,i) => v.id ==  currentAssetId)[0]
+      let getCurrentAsset = content.assets.filter((v) => v.id ==  currentAssetId)[0]
       console.log(getCurrentAsset)
 
       const assetId = AssetRecordType.createId()
