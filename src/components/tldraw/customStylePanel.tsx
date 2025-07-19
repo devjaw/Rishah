@@ -1,8 +1,8 @@
 import { ColorPicker } from 'antd'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useRef } from 'react'
 import { Editor, useEditor, useRelevantStyles, DefaultStylePanelContent, DefaultStylePanel, TldrawUiSlider, DefaultColorStyle, TldrawUiToolbar,
-    TldrawUiButtonPicker, getDefaultColorTheme, 
+    TldrawUiButtonPicker, getDefaultColorTheme,
     TLShape
 } from 'tldraw'
 
@@ -24,20 +24,46 @@ const STYLES = {
 }
 
 export const CustomStylePanel = () => {
+    console.log("call CustomStylePanel")
     const editor = useEditor()
     let selectedShape = editor.getOnlySelectedShape()
+   
+     const [selectedShapeId, setSelectedShapeId] = React.useState<string | null>(null);
+    useEffect(() => {
+        const handleSelectionChange = () => {
+            console.log("test21")
+            const currentShape = editor.getOnlySelectedShape();
+            const currentId = currentShape?.id || null;
+            
+            // Only update if the selected shape ID actually changed
+            if (currentId !== selectedShapeId) {
+                console.log("Selection changed, updating selectedShapeId");
+                setSelectedShapeId(currentId);
+            }
+        };
+        
+        // Subscribe to store changes (this includes selection changes)
+        const unsubscribe = editor.store.listen(handleSelectionChange);
+        
+        return () => {
+            unsubscribe();
+        };
+    }, [editor, selectedShapeId]);
+
 
     const styles = useRelevantStyles()
+    
     if (!styles) return null
 
     let isIconSelected = selectedShape?.meta?.type === 'icon';
 
     const theme = getDefaultColorTheme({ isDarkMode: false })
     const SVGStrokSlider = () => {
+    console.log("SVGStrokSlider")
+    const editor = useEditor()
         let selectedShape = editor.getOnlySelectedShape()
         const sliderRef = useRef<HTMLDivElement>(null)
 
-        console.log(selectedShape)
         
         // Define your stroke width values
         const strokeWidthValues = [0.5, 1, 1.5, 2, 2.5, 3] as const;
@@ -45,9 +71,18 @@ export const CustomStylePanel = () => {
         const [currentStrokeIndex, setCurrentStrokeIndex] = React.useState<number>(() => {
             const currentStroke = getStroke(selectedShape);
             const closestIndex = strokeWidthValues.findIndex(val => val === currentStroke) || 0;
-            console.log(closestIndex)
             return closestIndex;
         });
+
+
+        useEffect(() => {
+        if (selectedShape) {
+            const currentStroke = getStroke(selectedShape);
+            const closestIndex = strokeWidthValues.findIndex(val => val === currentStroke) || 0;
+            console.log('Updating stroke index to:', closestIndex, 'for stroke:', currentStroke);
+            setCurrentStrokeIndex(closestIndex);
+        }
+    }, [selectedShape?.id, selectedShape?.meta?.stroke]);
         
         const handleStrokeValueChange = (index: number) => {
             const strokeValue = strokeWidthValues[index];
@@ -58,6 +93,7 @@ export const CustomStylePanel = () => {
 
         return(
             <TldrawUiSlider
+            key={selectedShape?.id}
                 ref={sliderRef}
                 value={currentStrokeIndex}
                 // @ts-ignore
@@ -69,7 +105,7 @@ export const CustomStylePanel = () => {
             />
         )
     }
-
+    
     const SVGColorPicker = () =>{
         let selectedShape = editor.getOnlySelectedShape()
         if(!selectedShape) return
@@ -78,13 +114,10 @@ export const CustomStylePanel = () => {
         const shapeColorName = selectedShape.meta.colorName?.toString()
         const [selectedColor, setSelectedColor] = React.useState<string|null>(() => {
             const shapeColor = selectedShape.meta.color?.toString()
-            
             if(shapeColor) 
                 return shapeColor;
             else
                 return 'black';
-
-            
         });
         
         return(
@@ -211,7 +244,6 @@ function setColorRgb(x:any,editor:Editor,ColorName:string|null){
   let assetID:any = selectedShape?.props.assetId ?? null;
 
   const c = editor.getAsset(assetID)
-
   // Decode the SVG
   const decodedSvg = decodeURIComponent(c.props.src.replace('data:image/svg+xml;utf8,', ''));
 

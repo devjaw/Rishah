@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Editor, Tldraw, hardReset,parseTldrawJsonFile,createTLSchema, TLUiOverrides, TLComponents, useTools, useIsToolSelected,
-   DefaultToolbar, TldrawUiMenuItem, DefaultToolbarContent, TLUiAssetUrlOverrides } from 'tldraw'
+   DefaultToolbar, TldrawUiMenuItem, DefaultToolbarContent, TLUiAssetUrlOverrides, 
+   defaultHandleExternalTldrawContent,TLTldrawExternalContent,AssetRecordType
+  } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { save,open,ask } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
@@ -347,15 +349,14 @@ const components: TLComponents = {
         filters: [{ name: 'Tldraw Files', extensions: ['tldr'] }],
         multiple: false
       });
-      
+
       if(!selected)
         return;
 
       await loadTldrawFile(selected.toString())
 
 
-    } catch (error) {    
-      //setCurrentFilePath(null)
+    } catch (error) {
       alert("was not able to open the file. the tldr version is mismatch with app version.please download latest version")
       console.error('Error opening file:', error);
       // You might want to show an error message to the user
@@ -370,6 +371,7 @@ const components: TLComponents = {
     // @ts-ignore
     const snapshot = parseFileResult.value.getStoreSnapshot()
     editor.loadSnapshot(snapshot)
+    setCurrentFilePath(data)
   }
 
   const handleNew = async () =>{
@@ -396,6 +398,38 @@ const components: TLComponents = {
     }
   }
 
+
+  function handleCustomTldrawPaste(editor: Editor, { content, point }: TLTldrawExternalContent) {
+    console.log(content)
+    console.log(point)
+    let a = content.shapes.filter((v,i) => v.meta?.type != null)
+    if(!a) return;
+
+    a.forEach(b => {
+      // @ts-ignore
+      let currentAssetId = b.props?.assetId
+      //const c = editor.getAsset(currentAssetId)
+      let getCurrentAsset = content.assets.filter((v,i) => v.id ==  currentAssetId)[0]
+      console.log(getCurrentAsset)
+
+      const assetId = AssetRecordType.createId()
+      editor.createAssets([
+        {
+          ...getCurrentAsset,
+          id: assetId,
+        }
+      ]);
+
+      // @ts-ignore
+      b.props.assetId = assetId;
+
+    });
+
+    defaultHandleExternalTldrawContent(editor, { content, point })
+		return
+    
+}
+
   
 
   return (
@@ -405,17 +439,17 @@ const components: TLComponents = {
 
       <div style={{ flex: 1 }}>
         <Tldraw onMount={(editor) => {
-          console.log("onMount")
-          console.log(editor)
           if(editor){
             setEditor(editor)
-            console.log("new editor set")
           }
           editor.user.updateUserPreferences({ isSnapMode: true })
+          editor.registerExternalContentHandler('tldraw', (content) =>{
+             handleCustomTldrawPaste(editor,content);
+          })
           }} tools={customTools}
-				overrides={uiOverrides}
-				components={{...components,...shapeButtons,StylePanel:CustomStylePanel}}
-				assetUrls={customAssetUrls}
+				    overrides={uiOverrides}
+				    components={{...components,...shapeButtons,StylePanel:CustomStylePanel}}
+				    assetUrls={customAssetUrls}
          />
       </div>
     </div>

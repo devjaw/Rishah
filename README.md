@@ -5,7 +5,14 @@ A powerful desktop drawing and whiteboarding application built with Tauri and tl
 ![Screenshot](./screenshots/1.png)
 
 ## Download and Installation
-[Releases](https://github.com/devjaw/Rishah/releases) page
+Visit the [Releases](https://github.com/devjaw/Rishah/releases) page
+Download the latest version for your platform:
+
+* **Windows**: rishah-windows-x64.msi or rishah-windows-x64.exe
+* **macOS**: rishah-macos-universal.dmg or rishah-macos-universal.app.tar.gz
+* **Linux**: rishah-linux-x64.AppImage or rishah-linux-x64.deb
+
+Install or run the downloaded file
 
 
 ## Features
@@ -17,6 +24,18 @@ A powerful desktop drawing and whiteboarding application built with Tauri and tl
 * **File Management**: Save, export, and manage your drawing files locally
 * **Custom Shapes and Tools**: Access the complete tldraw toolkit with additional desktop-specific features
 * **Keyboard Shortcuts**: Boost your productivity with custom keyboard shortcuts
+
+
+## Minimum Requirements
+
+Windows: 10 (1903+) | macOS: 10.15+ | Linux: Ubuntu 18.04+
+RAM: 4 GB (8 GB recommended)
+Storage: 500 MB available space
+Graphics: DirectX 11 / Metal / OpenGL 3.3 compatible
+
+## Development
+
+Rust 1.70+ | Node.js 16+ | Tauri CLI 1.4+
 
 ### Contributing
 
