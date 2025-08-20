@@ -191,7 +191,7 @@ export const CustomStylePanel = () => {
 function getStroke(selectedShape: TLShape | null): number {
     if(!selectedShape) return 0
 
-    return Number(selectedShape.meta?.stroke) || 2
+    return Number(selectedShape.meta?.stroke) || 1.5
 }
 
 function setIconStrokeWidth(editor:Editor, num:Number){

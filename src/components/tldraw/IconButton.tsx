@@ -28,7 +28,7 @@ export class IconsTool extends StateNode {
     const defaultProps = {
       size: 24,
       color: 'currentColor',
-      strokeWidth: 2,
+      strokeWidth: 1.5,
       ...props
     };
 
@@ -131,8 +131,12 @@ export class IconsTool extends StateNode {
     const modal = Modal.info({
       title: 'Select an Icon',
       content: <IconPicker />,
-      onOk() {},
-      okText: 'Close'
+      footer: null,
+      closable: true,
+      closeIcon: <LucideIcons.X size={16} />,
+      onCancel() {
+        modal.destroy();
+      }
     });
   }
 

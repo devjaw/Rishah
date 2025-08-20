@@ -4,7 +4,7 @@ import { Editor, Tldraw, hardReset,parseTldrawJsonFile,createTLSchema, TLUiOverr
    defaultHandleExternalTldrawContent,TLTldrawExternalContent,AssetRecordType
   } from 'tldraw'
 import 'tldraw/tldraw.css'
-import { save,open,ask } from '@tauri-apps/plugin-dialog';
+import { save,open,ask,message as dialogMessage } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import { Menu, Submenu, MenuItem } from '@tauri-apps/api/menu';
 import { message } from 'antd';
@@ -136,9 +136,23 @@ const components: TLComponents = {
         ],
       });
 
+      const infoSubmenu = await Submenu.new({
+        text: 'Info',
+        items: [
+          await MenuItem.new({
+            id: 'about',
+            text: 'About',
+            action: () => {
+              handleAbout();
+            },
+          }),
+        ],
+      });
+
       const menu = await Menu.new({
         items: [
-          fileSubmenu
+          fileSubmenu,
+          infoSubmenu
         ],
       });
       menu.setAsAppMenu();
@@ -398,6 +412,17 @@ const components: TLComponents = {
     }
   }
 
+  const handleAbout = async () => {
+    try {
+      await dialogMessage('Rishah v0.5.2\n\nA modern drawing and diagramming application built with Tauri and TLDraw.\n\n© 2025 Rishah Team', {
+        title: 'About Rishah',
+        kind: 'info',
+      });
+    } catch (error) {
+      console.error('Error showing about dialog:', error);
+    }
+  }
+
 
   function handleCustomTldrawPaste(editor: Editor, { content, point }: TLTldrawExternalContent) {
     console.log(content)
@@ -434,10 +459,10 @@ const components: TLComponents = {
 
   return (
     <main className="container">
-      {contextHolder}
+          {contextHolder}
       <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
 
-      <div style={{ flex: 1 }}>
+
         <Tldraw onMount={(editor) => {
           if(editor){
             setEditor(editor)
@@ -451,7 +476,7 @@ const components: TLComponents = {
 				    components={{...components,...shapeButtons,StylePanel:CustomStylePanel}}
 				    assetUrls={customAssetUrls}
          />
-      </div>
+         
     </div>
   
     </main>

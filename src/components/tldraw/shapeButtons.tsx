@@ -97,7 +97,8 @@ style={{
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: 0
+  padding: 0,
+  opacity: 0.7
 }}
 onPointerDown={stopEventPropagation}
 onClick={() => {
