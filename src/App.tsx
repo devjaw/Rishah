@@ -77,11 +77,11 @@ const components: TLComponents = {
 
   useEffect(() => {
      const fetchData = async () => {
-      let userSelectedFile:any = await invoke('get_startup_args');
-      if(userSelectedFile && userSelectedFile.length > 0){
-        await loadTldrawFile(userSelectedFile[0])
-        setCurrentFilePath(userSelectedFile[0]);
-      }
+
+      let result: [string, string] | null = await invoke('get_startup_file_content');
+      if(!result || !result[0] || !result[1]) return;
+
+      await loadTldrawFile(result[1],result[0]);
      }
     fetchData()
   }, [editor]);
@@ -356,8 +356,21 @@ const components: TLComponents = {
     return body;
   }
 
+  const promptSaveCurrentFile = async () => {
+    const answer = await ask('Would you like to save the current file?', {
+      title: 'Save Current File',
+      kind: 'warning',
+    });
+    
+    if(answer){
+      await handleSave();
+    }
+  };
+
   const handleOpen = async () =>{
-    try {     
+    try {
+      await promptSaveCurrentFile();
+      
       // Open file dialog, filter for .tldraw files
       const selected = await open({
         filters: [{ name: 'Tldraw Files', extensions: ['tldr'] }],
@@ -367,7 +380,8 @@ const components: TLComponents = {
       if(!selected)
         return;
 
-      await loadTldrawFile(selected.toString())
+      const fileContent:string = await readTextFile(selected);
+      await loadTldrawFile(fileContent,selected)
 
 
     } catch (error) {
@@ -377,27 +391,19 @@ const components: TLComponents = {
     }
   }
 
-  const loadTldrawFile = async (data:string) => {
+  const loadTldrawFile = async (data:string,path:string) => {
     if (!editor) return;
-    const fileContent:any = await readTextFile(data);
-    const parseFileResult = parseTldrawJsonFile({ json: fileContent, schema: createTLSchema() });
+    const parseFileResult = parseTldrawJsonFile({ json: data, schema: createTLSchema() });
     console.log(parseFileResult)
     // @ts-ignore
     const snapshot = parseFileResult.value.getStoreSnapshot()
     editor.loadSnapshot(snapshot)
-    setCurrentFilePath(data)
+    setCurrentFilePath(path)
   }
 
   const handleNew = async () =>{
     try {
-      const answer = await ask('Would you like to save the current file?', {
-        title: 'Tauri',
-        kind: 'warning',
-      });
-      
-      if(answer){
-        await handleSave();
-      }
+      await promptSaveCurrentFile();
 
       if (editor) {
         editor.dispose();
