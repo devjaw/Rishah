@@ -2,7 +2,7 @@ import { ColorPicker } from 'antd'
 import React, { useEffect } from 'react'
 import { useRef } from 'react'
 import { Editor, useEditor, DefaultStylePanelContent, DefaultStylePanel, TldrawUiSlider, DefaultColorStyle, TldrawUiToolbar,
-    StylePanelButtonPicker, getDefaultColorTheme,
+    StylePanelButtonPicker,
     TLShape
 } from 'tldraw'
 
@@ -54,7 +54,7 @@ export const CustomStylePanel = () => {
 
     let isIconSelected = selectedShape?.meta?.type === 'icon';
 
-    const theme = getDefaultColorTheme({ isDarkMode: false })
+    const theme = editor.getCurrentTheme()
     const SVGStrokSlider = () => {
     console.log("SVGStrokSlider")
     const editor = useEditor()
@@ -131,9 +131,11 @@ export const CustomStylePanel = () => {
                         theme={theme}
                         // @ts-ignore
                         onValueChange= {(e:any,color:string)=>{
-                            const theme = getDefaultColorTheme({ isDarkMode: false });
+                            const theme = editor.getCurrentTheme();
                             // @ts-ignore
-                            const b =  theme[color]?.solid || null;
+                            const colors = theme.colors[editor.getColorMode()];
+                            // @ts-ignore
+                            const b = colors[color]?.solid || null;
                             setColorRgb(b,editor,color)
                             setSelectedColor(b)
                         }}
@@ -154,6 +156,8 @@ export const CustomStylePanel = () => {
                     }} value={selectedColor} size="small" 
                     showText={() => <span style={{fontStyle:'normal',fontWeight:400,fontSize: '12px',fontFamily: 'Segoe UI'}}>custom</span>}
                     onChange={(e:any)=>{
+                        console.log(e)
+                        console.log(e?.toHexString())
                         setColorRgb(e?.toHexString(),editor,null)
                         setSelectedColor(e?.toHexString())
                     }}
