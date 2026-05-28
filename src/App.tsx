@@ -448,7 +448,7 @@ useReactor(
 
   const handleAbout = async () => {
     try {
-      await dialogMessage('Rishah v0.6.2\n\nA modern drawing and diagramming application built with Tauri and TLDraw.\n\n© 2025 Rishah Team', {
+      await dialogMessage('Rishah v0.6.3\n\nA modern drawing and diagramming application built with Tauri and TLDraw.\n\n© 2025 Rishah Team', {
         title: 'About Rishah',
         kind: 'info',
       });
