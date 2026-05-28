@@ -14,16 +14,11 @@ export const shapeButtons: TLComponents = {
       if(!editor)
           return;
 
-      let selectedShape = editor.getOnlySelectedShape()
-      if(!selectedShape)
-        return;
-
-      if(selectedShape?.type !="geo")
-          return;
-      
       const info = useValue(
         'selection bounds',
         () => {
+          const selectedShape = editor.getOnlySelectedShape()
+          if (!selectedShape || selectedShape.type !== 'geo') return
           const screenBounds = editor.getViewportScreenBounds()
           const rotation = editor.getSelectionRotation()
           const rotatedScreenBounds = editor.getSelectionRotatedScreenBounds()
