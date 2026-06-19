@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
-import { Editor, Tldraw, hardReset,parseTldrawJsonFile,createTLSchema, TLUiOverrides, TLComponents, useTools, useIsToolSelected,
+import { useEffect, useRef, useState } from "react";
+import { Editor, Tldraw, TLUiOverrides, TLComponents, useTools, useIsToolSelected,
    DefaultToolbar, TldrawUiMenuItem, DefaultToolbarContent, TLUiAssetUrlOverrides,
    defaultHandleExternalTldrawContent,TLTldrawExternalContent,AssetRecordType,useReactor
   } from 'tldraw'
 import 'tldraw/tldraw.css'
-import { save,open,ask,message as dialogMessage } from '@tauri-apps/plugin-dialog';
-import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
-import { Menu, Submenu, MenuItem } from '@tauri-apps/api/menu';
+import { setupAppMenu, type AppMenuHandlers } from './menu/appMenu';
+import { saveFile, saveFileAs, openFile, newFile, loadFile, promptSaveBeforeClose, type Feedback } from './file/fileOps';
+import { currentFilePath as currentFilePathAtom } from './file/fileState';
 import { message } from 'antd';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow  } from "@tauri-apps/api/window";
@@ -15,6 +15,7 @@ import { IconsTool } from './components/tldraw/IconButton'
 import iconS from './assets/pen-tool.png'
 import { CustomStylePanel } from "./components/tldraw/customStylePanel";
 import { initializeUserPreferences, saveUserPreferences, saveInstanceState, loadInstanceState } from "./utils/settingsManager";
+import { getFilename } from "./utils/path";
 
 getCurrentWindow().listen("my-window-event", ({ event, payload }) => {
   console.log(event)
@@ -32,9 +33,13 @@ const customTools = [IconsTool]
 
 function App() {
   const [editor, setEditor] = useState<Editor | null>(null);
-  const [currentFilePath, setCurrentFilePath] = useState<String | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
-  const defaultFileName = 'drawing';
+  const editorRef = useRef<Editor | null>(null);
+  editorRef.current = editor;
+  const feedback: Feedback = {
+    success: (msg) => messageApi.open({ type: 'success', content: msg }),
+    error: (msg) => messageApi.open({ type: 'error', content: msg }),
+  };
 
 const uiOverrides: TLUiOverrides = {
 	tools(editor, tools) {
@@ -68,23 +73,14 @@ const components: TLComponents = {
 
 
 
-  const success = () => {
-    messageApi.open({
-      type: 'success',
-      content: 'Saved successfully',
-    });
-  };
-
-
   useEffect(() => {
-     const fetchData = async () => {
-
+    if (!editor) return;
+    const fetchData = async () => {
       let result: [string, string] | null = await invoke('get_startup_file_content');
-      if(!result || !result[0] || !result[1]) return;
-
-      await loadTldrawFile(result[1],result[0]);
-     }
-    fetchData()
+      if (!result || !result[0] || !result[1]) return;
+      loadFile(editor, result[1], result[0]);
+    };
+    fetchData();
   }, [editor]);
 
 
@@ -127,336 +123,81 @@ useReactor(
     };
   }, []);
 
-  const initializeMenu = async () => {
-    try {
-      const fileSubmenu = await Submenu.new({
-        text: 'File',
-        items: [
-          await MenuItem.new({
-            id: 'new',
-            text: 'New',
-            action: () => {
-              console.log('New clicked');
-              handleNew();
-            },
-          }),
-          await MenuItem.new({
-            id: 'open',
-            text: 'Open',
-            action: () => {
-              handleOpen();
-            },
-          }),
-          await MenuItem.new({
-            id: 'save',
-            text: 'Save',
-            action: () => {
-              handleSave(); // Changed from this.handleSave() to handleSave()
-            },
-          }),
-          await MenuItem.new({
-            id: 'save-as',
-            text: 'Save As',
-            action: () => {
-              handleSaveAs();
-            },
-          }),
-        ],
-      });
-
-      const infoSubmenu = await Submenu.new({
-        text: 'Info',
-        items: [
-          await MenuItem.new({
-            id: 'about',
-            text: 'About',
-            action: () => {
-              handleAbout();
-            },
-          }),
-        ],
-      });
-
-      const menu = await Menu.new({
-        items: [
-          fileSubmenu,
-          infoSubmenu
-        ],
-      });
-      menu.setAsAppMenu();
-    } catch (error) {
-      console.error('Error initializing menu:', error);
-    }
+  const menuHandlersRef = useRef<AppMenuHandlers | null>(null);
+  menuHandlersRef.current = {
+    onNew: () => newFile(editor, feedback),
+    onOpen: () => openFile(editor, feedback),
+    onSave: () => saveFile(editor, feedback),
+    onSaveAs: () => saveFileAs(editor, feedback),
   };
 
-  initializeMenu();
- 
+  useEffect(() => {
+    setupAppMenu({
+      onNew: () => menuHandlersRef.current?.onNew(),
+      onOpen: () => menuHandlersRef.current?.onOpen(),
+      onSave: () => menuHandlersRef.current?.onSave(),
+      onSaveAs: () => menuHandlersRef.current?.onSaveAs(),
+    });
+  }, []);
+
 
   
-    //Handle Ctrl+S and Ctrl+Shift+S keyboard shortcuts
     useEffect(() => {
-      const handleKeyDown = async (e:any) => {
-        // Check for Ctrl+Shift+S or Cmd+Shift+S (Save As)
+      const handleKeyDown = (e: KeyboardEvent) => {
+        const fb: Feedback = {
+          success: (m) => messageApi.open({ type: 'success', content: m }),
+          error: (m) => messageApi.open({ type: 'error', content: m }),
+        };
         if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 's') {
           e.preventDefault();
-          handleSaveAs();
+          saveFileAs(editorRef.current, fb);
           return;
         }
-        
-        // Check for Ctrl+S or Cmd+S (Save)
         if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 's') {
           e.preventDefault();
-          handleSave();
+          saveFile(editorRef.current, fb);
           return;
         }
       };
-  
-      // Add event listener
+
       window.addEventListener('keydown', handleKeyDown);
-      
-      // Cleanup: remove event listener
-      return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-      };
-    }, [currentFilePath,editor]); // Include currentFilePath in dependencies
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [messageApi]);
 
-  // Handle window close event
   useEffect(() => {
-    const setupCloseHandler = async () => {
-      const unlisten = await getCurrentWindow().onCloseRequested(async (event) => {
-        console.log("Close requested");
-        
-        // Prevent the window from closing initially
-        event.preventDefault();
-        
-        // Show save dialog
+    const unlistenPromise = getCurrentWindow().onCloseRequested(async (event) => {
+      event.preventDefault();
+      try {
+        const fb: Feedback = {
+          success: (m) => messageApi.open({ type: 'success', content: m }),
+          error: (m) => messageApi.open({ type: 'error', content: m }),
+        };
+        await promptSaveBeforeClose(editorRef.current, fb);
+      } catch (error) {
+        console.error('Error handling close request:', error);
+      } finally {
         try {
-          const answer = await ask('Do you want to save your changes before closing?', {
-            title: 'Save Changes',
-            kind: 'warning',
-          });
-          
-          if (answer) {
-            // User wants to save
-            try {
-              await handleSave();
-              console.log("Saved successfully, now closing");
-            } catch (error) {
-              console.error('Error saving before close:', error);
-            }
-          } else {
-            // User chose not to save
-            console.log("User chose not to save");
-          }
-          
-          // After handling the dialog, close the window by destroying it
           await getCurrentWindow().destroy();
-          
-        } catch (error) {
-          console.error('Error handling close request:', error);
-          // If there's an error, try to close anyway
-          try {
-            await getCurrentWindow().destroy();
-          } catch (destroyError) {
-            console.error('Error destroying window:', destroyError);
-          }
+        } catch (destroyError) {
+          console.error('Error destroying window:', destroyError);
         }
-      });
-
-      // Return cleanup function
-      return unlisten;
-    };
-
-    let unlistenPromise = setupCloseHandler();
+      }
+    });
 
     return () => {
-      // Cleanup the event listener
       unlistenPromise.then(unlisten => unlisten?.());
     };
-  }, [handleSave]); // Include handleSave in dependencies
+  }, [messageApi]);
 
-  // Update window title when file path changes
-  useEffect(() => {
-    const updateTitle = async () => {
-      const window = getCurrentWindow();
-      if (currentFilePath) {
-        const filename = currentFilePath.split('/').pop() || currentFilePath.split('\\').pop();
-        await window.setTitle(`Rishah - ${filename}`);
-      } else {
-        await window.setTitle('Rishah - Untitled');
-      }
-    };
-    
-    updateTitle();
-  }, [currentFilePath]);
-  
-    async function handleSave(){
-    try {
-      console.log(editor)
-      if (!editor) return;
-
-      const DataToSave = await prepareFileForSave()
-      console.log(DataToSave)
-      if(!DataToSave) return;
-  
-      if(currentFilePath){
-        await writeTextFile(currentFilePath?.toString(), DataToSave);
-        success();
-        return;
-      }
-
-
-
-      // Use Tauri's dialog to let the user choose where to save the file
-      const savePath = await save({
-        defaultPath: `${defaultFileName}.tldr`,
-        filters: [{
-          name: 'TLDraw Files',
-          extensions: ['tldr']
-        }]
-      });
-      
-      // If the user cancelled the dialog, savePath will be null
-      if (!savePath) return;
-      
-      // Write the tldraw file to the selected location
-      await writeTextFile(savePath, DataToSave);
-      setCurrentFilePath(savePath);
-
-      
-      console.log(`File saved successfully to: ${savePath}`);
-    } catch (error) {
-      console.error('Error saving file:', error);
-    }
-  };
-
-  async function handleSaveAs(){
-    try {
-      console.log(editor)
-      if (!editor) return;
-
-      const DataToSave = await prepareFileForSave()
-      console.log(DataToSave)
-      if(!DataToSave) return;
-
-      // Use Tauri's dialog to let the user choose where to save the file
-      const savePath = await save({
-        defaultPath: `${defaultFileName}.tldr`,
-        filters: [{
-          name: 'TLDraw Files',
-          extensions: ['tldr']
-        }]
-      });
-      
-      // If the user cancelled the dialog, savePath will be null
-      if (!savePath) return;
-      
-      // Write the tldraw file to the selected location
-      await writeTextFile(savePath, DataToSave);
-      setCurrentFilePath(savePath);
-
-      success();
-      
-      console.log(`File saved successfully to: ${savePath}`);
-    } catch (error) {
-      console.error('Error saving file:', error);
-    }
-  };
-
-  async function prepareFileForSave(){
-    if (!editor) return;
-    const exportedContent = editor?.getSnapshot();
-    const store = exportedContent.document.store
-    const schema = exportedContent.document.schema
-    let records = [];
-		for (const record of Object.values(store)) {
-      console.log(record)
-      records.push(record);
-		}
-		const body = JSON.stringify(
-				{
-					schema: schema,
-					records: records,
-          tldrawFileFormatVersion:1
-				}
-      )
-
-    return body;
-  }
-
-  const promptSaveCurrentFile = async () => {
-    const answer = await ask('Would you like to save the current file?', {
-      title: 'Save Current File',
-      kind: 'warning',
-    });
-    
-    if(answer){
-      await handleSave();
-    }
-  };
-
-  const handleOpen = async () =>{
-    try {
-      await promptSaveCurrentFile();
-      
-      // Open file dialog, filter for .tldraw files
-      const selected = await open({
-        filters: [{ name: 'Tldraw Files', extensions: ['tldr'] }],
-        multiple: false
-      });
-
-      if(!selected)
-        return;
-
-      const fileContent:string = await readTextFile(selected);
-      await loadTldrawFile(fileContent,selected)
-
-
-    } catch (error) {
-      alert("was not able to open the file. the tldr version is mismatch with app version.please download latest version")
-      console.error('Error opening file:', error);
-      // You might want to show an error message to the user
-    }
-  }
-
-  const loadTldrawFile = async (data:string,path:string) => {
-    if (!editor) return;
-    const parseFileResult = parseTldrawJsonFile({ json: data, schema: createTLSchema() });
-    console.log(parseFileResult)
-    // @ts-ignore
-    const snapshot = parseFileResult.value.getStoreSnapshot()
-    editor.loadSnapshot(snapshot)
-    setCurrentFilePath(path)
-  }
-
-  const handleNew = async () =>{
-    try {
-      await promptSaveCurrentFile();
-
-      if (editor) {
-        editor.dispose();
-      }
-
-      hardReset({shouldReload:true})
-     
-      
-    } catch (error) {
-      console.error('Error opening file:', error);
-      // You might want to show an error message to the user
-    }
-  }
-
-  const handleAbout = async () => {
-    try {
-      await dialogMessage('Rishah v0.6.3\n\nA modern drawing and diagramming application built with Tauri and TLDraw.\n\n© 2025 Rishah Team', {
-        title: 'About Rishah',
-        kind: 'info',
-      });
-    } catch (error) {
-      console.error('Error showing about dialog:', error);
-    }
-  }
-
+  useReactor(
+    'update-window-title',
+    () => {
+      const path = currentFilePathAtom.get();
+      const title = path ? `Rishah - ${getFilename(path)}` : 'Rishah - Untitled';
+      getCurrentWindow().setTitle(title);
+    },
+    [],
+  );
 
   function handleCustomTldrawPaste(editor: Editor, { content, point }: TLTldrawExternalContent) {
     let a = content.shapes.filter((v) => v.meta?.type != null)
