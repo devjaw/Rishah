@@ -1,16 +1,12 @@
-import { useEffect, useRef, useState } from "react";
-import { Editor, Tldraw, useReactor } from 'tldraw'
+import { useRef, useState } from "react";
+import { Editor, Tldraw } from 'tldraw'
 import 'tldraw/tldraw.css'
-import { setupAppMenu, type AppMenuHandlers } from './menu/appMenu';
-import { saveFile, saveFileAs, openFile, newFile, loadFile, promptSaveBeforeClose, type Feedback } from './file/fileOps';
-import { currentFilePath as currentFilePathAtom } from './file/fileState';
+import { type Feedback } from './file/fileOps';
 import { message } from 'antd';
-import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow  } from "@tauri-apps/api/window";
 import { uiOverrides, tldrawComponents, customAssetUrls, customTools } from './components/tldraw/tldrawConfig';
 import { handleCustomTldrawPaste } from './components/tldraw/handlePaste';
-import { initializeUserPreferences, saveUserPreferences, saveInstanceState, loadInstanceState } from "./utils/settingsManager";
-import { getFilename } from "./utils/path";
+import { useAppMenu, useCloseHandler, usePathRedirect, useSaveShortcuts, useStartupFile, useTldrawSettingsPersistence, useWindowTitle } from './hooks';
 
 getCurrentWindow().listen("my-window-event", ({ event, payload }) => {
   console.log(event)
@@ -27,130 +23,13 @@ function App() {
     error: (msg) => messageApi.open({ type: 'error', content: msg }),
   };
 
-  useEffect(() => {
-    if (!editor) return;
-    const fetchData = async () => {
-      let result: [string, string] | null = await invoke('get_startup_file_content');
-      if (!result || !result[0] || !result[1]) return;
-      loadFile(editor, result[1], result[0]);
-    };
-    fetchData();
-  }, [editor]);
-
-
-useReactor(
-  'save-grid-mode',
-  () => {
-    if (!editor) return;
-
-    const isGridMode = editor.getInstanceState().isGridMode;
-   // console.log('Grid mode changed:', isGridMode);
-    saveInstanceState({ isGridMode });
-  },
-  [editor]
-);
-
-useReactor(
-  'save-user-preferences',
-  () => {
-    if (!editor) return;
-    const userPrefs = editor.user.getUserPreferences();
-   // console.log('User preferences changed:', userPrefs);
-    saveUserPreferences(userPrefs);
-  },
-  [editor]
-);
-
-  // Disable context menu
-  useEffect(() => {
-    if (window.location.pathname === '/') {
-      window.location.replace('/com.rishah.app');
-    }
-    const disableContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-    };
-    
-    window.addEventListener('contextmenu', disableContextMenu);
-    
-    return () => {
-      window.removeEventListener('contextmenu', disableContextMenu);
-    };
-  }, []);
-
-  const menuHandlersRef = useRef<AppMenuHandlers | null>(null);
-  menuHandlersRef.current = {
-    onNew: () => newFile(editor, feedback),
-    onOpen: () => openFile(editor, feedback),
-    onSave: () => saveFile(editor, feedback),
-    onSaveAs: () => saveFileAs(editor, feedback),
-  };
-
-  useEffect(() => {
-    setupAppMenu({
-      onNew: () => menuHandlersRef.current?.onNew(),
-      onOpen: () => menuHandlersRef.current?.onOpen(),
-      onSave: () => menuHandlersRef.current?.onSave(),
-      onSaveAs: () => menuHandlersRef.current?.onSaveAs(),
-    });
-  }, []);
-
-
-  
-    useEffect(() => {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        const fb: Feedback = {
-          success: (m) => messageApi.open({ type: 'success', content: m }),
-          error: (m) => messageApi.open({ type: 'error', content: m }),
-        };
-        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 's') {
-          e.preventDefault();
-          saveFileAs(editorRef.current, fb);
-          return;
-        }
-        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 's') {
-          e.preventDefault();
-          saveFile(editorRef.current, fb);
-          return;
-        }
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [messageApi]);
-
-  useEffect(() => {
-    const unlistenPromise = getCurrentWindow().onCloseRequested(async (event) => {
-      event.preventDefault();
-      try {
-        const fb: Feedback = {
-          success: (m) => messageApi.open({ type: 'success', content: m }),
-          error: (m) => messageApi.open({ type: 'error', content: m }),
-        };
-        await promptSaveBeforeClose(editorRef.current, fb);
-      } catch (error) {
-        console.error('Error handling close request:', error);
-      } finally {
-        try {
-          await getCurrentWindow().destroy();
-        } catch (destroyError) {
-          console.error('Error destroying window:', destroyError);
-        }
-      }
-    });
-
-    return () => {
-      unlistenPromise.then(unlisten => unlisten?.());
-    };
-  }, [messageApi]);
-
-  useReactor(
-    'update-window-title',
-    () => {
-      const path = currentFilePathAtom.get();
-      const title = path ? `Rishah - ${getFilename(path)}` : 'Rishah - Untitled';
-      getCurrentWindow().setTitle(title);
-    },
-    [],
-  );
+  usePathRedirect();
+  useStartupFile(editor);
+  useTldrawSettingsPersistence(editor);
+  useAppMenu({ editor, feedback });
+  useSaveShortcuts({ messageApi, editorRef });
+  useCloseHandler({ messageApi, editorRef });
+  useWindowTitle();
 
   return (
     <main className="container">
@@ -160,18 +39,6 @@ useReactor(
           onMount={(editor) => {
             if(!editor) return;
             setEditor(editor)
-
-            // Load and apply saved preferences
-            initializeUserPreferences().then(savedPrefs => {
-              editor.user.updateUserPreferences(savedPrefs);
-            });
-
-            // Load and apply saved instance state (grid mode)
-            loadInstanceState().then(savedInstanceState => {
-              if (savedInstanceState) {
-                editor.updateInstanceState({ isGridMode: savedInstanceState.isGridMode });
-              }
-            });
 
             editor.registerExternalContentHandler('tldraw', (content) =>{
               handleCustomTldrawPaste(editor,content);
@@ -184,8 +51,7 @@ useReactor(
           licenseKey={import.meta.env.VITE_TLDRAW_LICENSE}
          />
          
-    </div>
-  
+      </div>
     </main>
   );
   
