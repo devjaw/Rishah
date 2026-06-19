@@ -1,5 +1,6 @@
 import {
   TLComponents,
+  TLUiAssetUrlOverrides,
   TLUiOverrides,
   useTools,
   useIsToolSelected,
@@ -9,6 +10,8 @@ import {
 } from 'tldraw';
 import { shapeButtons } from './shapeButtons';
 import { CustomStylePanel } from './customStylePanel';
+import { IconsTool } from './IconButton';
+import iconS from '../../assets/pen-tool.png';
 
 const CustomToolbar: NonNullable<TLComponents['Toolbar']> = (props) => {
   const tools = useTools();
@@ -38,3 +41,11 @@ export const tldrawComponents: TLComponents = {
   Toolbar: CustomToolbar,
   StylePanel: CustomStylePanel,
 };
+
+export const customAssetUrls: TLUiAssetUrlOverrides = {
+  icons: {
+    'toolbox-icons': iconS,
+  },
+};
+
+export const customTools = [IconsTool];

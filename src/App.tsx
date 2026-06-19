@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Editor, Tldraw, TLUiAssetUrlOverrides, useReactor } from 'tldraw'
+import { Editor, Tldraw, useReactor } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { setupAppMenu, type AppMenuHandlers } from './menu/appMenu';
 import { saveFile, saveFileAs, openFile, newFile, loadFile, promptSaveBeforeClose, type Feedback } from './file/fileOps';
@@ -7,9 +7,7 @@ import { currentFilePath as currentFilePathAtom } from './file/fileState';
 import { message } from 'antd';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow  } from "@tauri-apps/api/window";
-import { IconsTool } from './components/tldraw/IconButton'
-import iconS from './assets/pen-tool.png'
-import { uiOverrides, tldrawComponents } from './components/tldraw/tldrawConfig';
+import { uiOverrides, tldrawComponents, customAssetUrls, customTools } from './components/tldraw/tldrawConfig';
 import { handleCustomTldrawPaste } from './components/tldraw/handlePaste';
 import { initializeUserPreferences, saveUserPreferences, saveInstanceState, loadInstanceState } from "./utils/settingsManager";
 import { getFilename } from "./utils/path";
@@ -18,15 +16,6 @@ getCurrentWindow().listen("my-window-event", ({ event, payload }) => {
   console.log(event)
   console.log(payload)
  });
-
-
- export const customAssetUrls: TLUiAssetUrlOverrides = {
-	icons: {
-		'toolbox-icons': iconS,
-	},
-}
-
-const customTools = [IconsTool]
 
 function App() {
   const [editor, setEditor] = useState<Editor | null>(null);
