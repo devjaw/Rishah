@@ -6,7 +6,8 @@ import {
   pickOpenPath,
   writeFile,
   readFile,
-  confirmSavePrompt,
+  confirmSaveOrDiscard,
+  type SaveChoice,
 } from './fileIO';
 
 export type Feedback = {
@@ -55,7 +56,8 @@ export async function openFile(editor: Editor | null, feedback: Feedback): Promi
   if (!editor) return;
 
   try {
-    await promptSaveIfWanted(editor, feedback);
+    const choice = await promptSaveIfWanted(editor, feedback);
+    if (choice === 'cancel') return;
 
     const path = await pickOpenPath();
     if (!path) return;
@@ -70,7 +72,10 @@ export async function openFile(editor: Editor | null, feedback: Feedback): Promi
 
 export async function newFile(editor: Editor | null, feedback: Feedback): Promise<void> {
   try {
-    if (editor) await promptSaveIfWanted(editor, feedback);
+    if (editor) {
+      const choice = await promptSaveIfWanted(editor, feedback);
+      if (choice === 'cancel') return;
+    }
     editor?.dispose();
     currentFilePath.set(null);
     hardReset({ shouldReload: true });
@@ -91,18 +96,20 @@ export function loadFile(editor: Editor, body: string, path: string): void {
 export async function promptSaveBeforeClose(
   editor: Editor | null,
   feedback: Feedback,
-): Promise<void> {
-  const wantsSave = await confirmSavePrompt(
+): Promise<SaveChoice> {
+  const choice = await confirmSaveOrDiscard(
     'Do you want to save your changes before closing?',
     'Save Changes',
   );
-  if (wantsSave) await saveFile(editor, feedback);
+  if (choice === 'save') await saveFile(editor, feedback);
+  return choice;
 }
 
-async function promptSaveIfWanted(editor: Editor | null, feedback: Feedback): Promise<void> {
-  const wantsSave = await confirmSavePrompt(
+async function promptSaveIfWanted(editor: Editor | null, feedback: Feedback): Promise<SaveChoice> {
+  const choice = await confirmSaveOrDiscard(
     'Would you like to save the current file?',
     'Save Current File',
   );
-  if (wantsSave) await saveFile(editor, feedback);
+  if (choice === 'save') await saveFile(editor, feedback);
+  return choice;
 }

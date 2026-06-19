@@ -13,20 +13,25 @@ export function useCloseHandler({ messageApi, editorRef }: Params): void {
   useEffect(() => {
     const unlistenPromise = getCurrentWindow().onCloseRequested(async (event) => {
       event.preventDefault();
+      const fb: Feedback = {
+        success: (m) => messageApi.open({ type: 'success', content: m }),
+        error: (m) => messageApi.open({ type: 'error', content: m }),
+      };
+
+      let choice;
       try {
-        const fb: Feedback = {
-          success: (m) => messageApi.open({ type: 'success', content: m }),
-          error: (m) => messageApi.open({ type: 'error', content: m }),
-        };
-        await promptSaveBeforeClose(editorRef.current, fb);
+        choice = await promptSaveBeforeClose(editorRef.current, fb);
       } catch (error) {
         console.error('Error handling close request:', error);
-      } finally {
-        try {
-          await getCurrentWindow().destroy();
-        } catch (destroyError) {
-          console.error('Error destroying window:', destroyError);
-        }
+        return;
+      }
+
+      if (choice === 'cancel') return;
+
+      try {
+        await getCurrentWindow().destroy();
+      } catch (destroyError) {
+        console.error('Error destroying window:', destroyError);
       }
     });
 
