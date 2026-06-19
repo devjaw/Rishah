@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Editor, Tldraw, TLUiOverrides, TLComponents, useTools, useIsToolSelected,
-   DefaultToolbar, TldrawUiMenuItem, DefaultToolbarContent, TLUiAssetUrlOverrides,
-   defaultHandleExternalTldrawContent,TLTldrawExternalContent,AssetRecordType,useReactor
-  } from 'tldraw'
+import { Editor, Tldraw, TLUiAssetUrlOverrides, useReactor } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { setupAppMenu, type AppMenuHandlers } from './menu/appMenu';
 import { saveFile, saveFileAs, openFile, newFile, loadFile, promptSaveBeforeClose, type Feedback } from './file/fileOps';
@@ -10,10 +7,10 @@ import { currentFilePath as currentFilePathAtom } from './file/fileState';
 import { message } from 'antd';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow  } from "@tauri-apps/api/window";
-import { shapeButtons } from "./components/tldraw/shapeButtons";
 import { IconsTool } from './components/tldraw/IconButton'
 import iconS from './assets/pen-tool.png'
-import { CustomStylePanel } from "./components/tldraw/customStylePanel";
+import { uiOverrides, tldrawComponents } from './components/tldraw/tldrawConfig';
+import { handleCustomTldrawPaste } from './components/tldraw/handlePaste';
 import { initializeUserPreferences, saveUserPreferences, saveInstanceState, loadInstanceState } from "./utils/settingsManager";
 import { getFilename } from "./utils/path";
 
@@ -40,38 +37,6 @@ function App() {
     success: (msg) => messageApi.open({ type: 'success', content: msg }),
     error: (msg) => messageApi.open({ type: 'error', content: msg }),
   };
-
-const uiOverrides: TLUiOverrides = {
-	tools(editor, tools) {
-		// Create a tool item in the ui's context.
-		tools.icons = {
-			id: 'icons',
-			icon: 'toolbox-icons',
-			label: 'Icons',
-			onSelect: () => {
-				editor.setCurrentTool('icons')
-			},
-		}
-		return tools
-	},
-}
-
-
-const components: TLComponents = {
-	Toolbar: (props) => {
-		const tools = useTools()
-		const isIconsSelected = useIsToolSelected(tools['icons'])
-		return (
-			<DefaultToolbar {...props}>
-        <TldrawUiMenuItem {...tools['icons']} isSelected={isIconsSelected}/>
-				<DefaultToolbarContent />
-        
-			</DefaultToolbar>
-		)
-	}
-}
-
-
 
   useEffect(() => {
     if (!editor) return;
@@ -159,7 +124,6 @@ useReactor(
           return;
         }
       };
-
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }, [messageApi]);
@@ -199,43 +163,10 @@ useReactor(
     [],
   );
 
-  function handleCustomTldrawPaste(editor: Editor, { content, point }: TLTldrawExternalContent) {
-    let a = content.shapes.filter((v) => v.meta?.type != null)
-    if(!a) return;
-
-    a.forEach(b => {
-      // @ts-ignore
-      let currentAssetId = b.props?.assetId
-      //const c = editor.getAsset(currentAssetId)
-      let getCurrentAsset = content.assets.filter((v) => v.id ==  currentAssetId)[0]
-      console.log(getCurrentAsset)
-
-      const assetId = AssetRecordType.createId()
-      editor.createAssets([
-        {
-          ...getCurrentAsset,
-          id: assetId,
-        }
-      ]);
-
-      // @ts-ignore
-      b.props.assetId = assetId;
-
-    });
-
-    defaultHandleExternalTldrawContent(editor, { content, point })
-		return
-    
-}
-
-
-
   return (
     <main className="container">
           {contextHolder}
       <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-
-
         <Tldraw
           onMount={(editor) => {
             if(!editor) return;
@@ -259,7 +190,7 @@ useReactor(
           }}
           tools={customTools}
           overrides={uiOverrides}
-          components={{...components,...shapeButtons,StylePanel:CustomStylePanel}}
+          components={tldrawComponents}
           assetUrls={customAssetUrls}
           licenseKey={import.meta.env.VITE_TLDRAW_LICENSE}
          />
@@ -272,5 +203,3 @@ useReactor(
 }
 
 export default App;
-
-
