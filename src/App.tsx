@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import { Editor, Tldraw } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { type Feedback } from './file/fileOps';
+import { savedSnapshot } from './file/fileState';
+import { comparableSnapshot } from './file/serialize';
 import { message } from 'antd';
 import { getCurrentWindow  } from "@tauri-apps/api/window";
 import { uiOverrides, tldrawComponents, customAssetUrls, customTools } from './components/tldraw/tldrawConfig';
@@ -39,6 +41,10 @@ function App() {
           onMount={(editor) => {
             if(!editor) return;
             setEditor(editor)
+
+            if (savedSnapshot.get() === null) {
+              savedSnapshot.set(comparableSnapshot(editor));
+            }
 
             editor.registerExternalContentHandler('tldraw', (content) =>{
               handleCustomTldrawPaste(editor,content);

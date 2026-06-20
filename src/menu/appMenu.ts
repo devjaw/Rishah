@@ -11,7 +11,7 @@ export type AppMenuHandlers = {
 async function showAboutDialog(): Promise<void> {
   try {
     await dialogMessage(
-      'Rishah v0.6.3\n\nA modern drawing and diagramming application built with Tauri and TLDraw.\n\n© 2025 Rishah Team',
+      'Rishah v0.7.0\n\nA modern drawing and diagramming application built with Tauri and TLDraw.\n\n© 2025 Rishah Team',
       { title: 'About Rishah', kind: 'info' },
     );
   } catch (error) {

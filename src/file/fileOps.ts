@@ -1,6 +1,6 @@
 import { Editor, hardReset, parseTldrawJsonFile, createTLSchema } from 'tldraw';
-import { currentFilePath } from './fileState';
-import { serializeEditor } from './serialize';
+import { currentFilePath, savedSnapshot } from './fileState';
+import { serializeEditor, comparableSnapshot, isDirty } from './serialize';
 import {
   pickSavePath,
   pickOpenPath,
@@ -24,6 +24,7 @@ export async function saveFile(editor: Editor | null, feedback: Feedback): Promi
 
     if (path) {
       await writeFile(path, body);
+      savedSnapshot.set(comparableSnapshot(editor));
       feedback.success('Saved successfully');
       return;
     }
@@ -45,6 +46,7 @@ export async function saveFileAs(editor: Editor | null, feedback: Feedback): Pro
 
     await writeFile(path, body);
     currentFilePath.set(path);
+    savedSnapshot.set(comparableSnapshot(editor));
     feedback.success('Saved successfully');
   } catch (error) {
     console.error('Error saving file:', error);
@@ -91,12 +93,15 @@ export function loadFile(editor: Editor, body: string, path: string): void {
   const snapshot = parseResult.value.getStoreSnapshot();
   editor.loadSnapshot(snapshot);
   currentFilePath.set(path);
+  savedSnapshot.set(comparableSnapshot(editor));
 }
 
 export async function promptSaveBeforeClose(
   editor: Editor | null,
   feedback: Feedback,
 ): Promise<SaveChoice> {
+  if (editor && !isDirty(editor, savedSnapshot.get())) return 'discard';
+
   const choice = await confirmSaveOrDiscard(
     'Do you want to save your changes before closing?',
     'Save Changes',
@@ -106,6 +111,8 @@ export async function promptSaveBeforeClose(
 }
 
 async function promptSaveIfWanted(editor: Editor | null, feedback: Feedback): Promise<SaveChoice> {
+  if (editor && !isDirty(editor, savedSnapshot.get())) return 'discard';
+
   const choice = await confirmSaveOrDiscard(
     'Would you like to save the current file?',
     'Save Current File',

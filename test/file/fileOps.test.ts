@@ -43,8 +43,9 @@ function decodePayload(payload: unknown): string {
 }
 
 beforeEach(async () => {
-  const { currentFilePath } = await import('../../src/file/fileState');
+  const { currentFilePath, savedSnapshot } = await import('../../src/file/fileState');
   currentFilePath.set(null);
+  savedSnapshot.set(null);
 });
 
 afterEach(() => {
@@ -163,7 +164,7 @@ describe('openFile', () => {
 
     let read = false;
     mockIPC((cmd) => {
-      if (cmd === 'plugin:dialog|ask') return false;
+      if (cmd === 'plugin:dialog|message') return "Don't Save";
       if (cmd === 'plugin:dialog|open') return null;
       if (cmd === 'plugin:fs|read_text_file') {
         read = true;
@@ -182,7 +183,7 @@ describe('openFile', () => {
     const { currentFilePath } = await import('../../src/file/fileState');
 
     mockIPC((cmd) => {
-      if (cmd === 'plugin:dialog|ask') return false;
+      if (cmd === 'plugin:dialog|message') return "Don't Save";
       if (cmd === 'plugin:dialog|open') return '/tmp/source.tldr';
       if (cmd === 'plugin:fs|read_text_file') return '{"schema":{},"records":[]}';
     });
@@ -204,7 +205,7 @@ describe('save/open round-trip', () => {
     mockIPC((cmd, args: any) => {
       if (cmd === 'plugin:dialog|save') return '/tmp/round.tldr';
       if (cmd === 'plugin:dialog|open') return '/tmp/round.tldr';
-      if (cmd === 'plugin:dialog|ask') return false;
+      if (cmd === 'plugin:dialog|message') return "Don't Save";
       if (cmd === 'plugin:fs|write_text_file') {
         writtenBody = decodePayload(args);
         return null;
@@ -234,7 +235,7 @@ describe('promptSaveBeforeClose', () => {
 
     let wrote = false;
     mockIPC((cmd) => {
-      if (cmd === 'plugin:dialog|ask') return true;
+      if (cmd === 'plugin:dialog|message') return 'Save';
       if (cmd === 'plugin:fs|write_text_file') {
         wrote = true;
         return null;
@@ -255,7 +256,7 @@ describe('promptSaveBeforeClose', () => {
 
     let wrote = false;
     mockIPC((cmd) => {
-      if (cmd === 'plugin:dialog|ask') return false;
+      if (cmd === 'plugin:dialog|message') return "Don't Save";
       if (cmd === 'plugin:fs|write_text_file') {
         wrote = true;
         return null;
@@ -267,5 +268,65 @@ describe('promptSaveBeforeClose', () => {
 
     expect(wrote).toBe(false);
     expect(fb.success).not.toHaveBeenCalled();
+  });
+
+  it('skips the dialog when the document matches the saved snapshot', async () => {
+    const { promptSaveBeforeClose } = await import('../../src/file/fileOps');
+    const { currentFilePath, savedSnapshot } = await import('../../src/file/fileState');
+    const { comparableSnapshot } = await import('../../src/file/serialize');
+    currentFilePath.set('/tmp/existing.tldr');
+    savedSnapshot.set(comparableSnapshot(fakeEditor));
+
+    const calls: string[] = [];
+    mockIPC((cmd) => {
+      calls.push(cmd);
+      if (cmd === 'plugin:fs|write_text_file') return null;
+    });
+
+    const fb = makeFeedback();
+    const choice = await promptSaveBeforeClose(fakeEditor, fb);
+
+    expect(choice).toBe('discard');
+    expect(calls).not.toContain('plugin:dialog|message');
+    expect(calls).not.toContain('plugin:fs|write_text_file');
+  });
+
+  it('shows the dialog when the document differs from the saved snapshot', async () => {
+    const { promptSaveBeforeClose } = await import('../../src/file/fileOps');
+    const { currentFilePath, savedSnapshot } = await import('../../src/file/fileState');
+    currentFilePath.set('/tmp/existing.tldr');
+    savedSnapshot.set('{"different":"snapshot"}');
+
+    const calls: string[] = [];
+    mockIPC((cmd) => {
+      calls.push(cmd);
+      if (cmd === 'plugin:dialog|message') return "Don't Save";
+    });
+
+    const fb = makeFeedback();
+    await promptSaveBeforeClose(fakeEditor, fb);
+
+    expect(calls).toContain('plugin:dialog|message');
+  });
+});
+
+describe('openFile dirty-check', () => {
+  it('skips the save-changes dialog when the document is unchanged', async () => {
+    const { openFile } = await import('../../src/file/fileOps');
+    const { savedSnapshot } = await import('../../src/file/fileState');
+    const { comparableSnapshot } = await import('../../src/file/serialize');
+    savedSnapshot.set(comparableSnapshot(fakeEditor));
+
+    const calls: string[] = [];
+    mockIPC((cmd) => {
+      calls.push(cmd);
+      if (cmd === 'plugin:dialog|open') return null;
+    });
+
+    const fb = makeFeedback();
+    await openFile(fakeEditor, fb);
+
+    expect(calls).not.toContain('plugin:dialog|message');
+    expect(calls).toContain('plugin:dialog|open');
   });
 });
