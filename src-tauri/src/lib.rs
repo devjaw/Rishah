@@ -6,12 +6,24 @@ fn greet(name: &str) -> String {
 
 
 use std::env;
+use std::sync::Mutex;
+use tauri::State;
+
+struct StartupConsumed(Mutex<bool>);
 
 #[tauri::command]
-fn get_startup_file_content() -> Result<Option<(String, String)>, String> {
+fn get_startup_file_content(
+    consumed: State<'_, StartupConsumed>,
+) -> Result<Option<(String, String)>, String> {
+    let mut lock = consumed.0.lock().map_err(|e| e.to_string())?;
+    if *lock {
+        return Ok(None);
+    }
+    *lock = true;
+
     // Get all command line arguments (skip the first one which is the program name)
     let raw_args: Vec<String> = std::env::args().skip(1).collect();
-    
+
     if raw_args.is_empty() {
         return Ok(None);
     }
@@ -80,6 +92,7 @@ fn get_startup_file_content() -> Result<Option<(String, String)>, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(StartupConsumed(Mutex::new(false)))
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
