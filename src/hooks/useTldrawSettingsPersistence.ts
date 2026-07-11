@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Editor, useReactor } from 'tldraw';
+import { Editor, useValue } from 'tldraw';
 import {
   initializeUserPreferences,
   loadInstanceState,
@@ -11,6 +11,9 @@ export function useTldrawSettingsPersistence(editor: Editor | null): void {
   useEffect(() => {
     if (!editor) return;
 
+
+    console.log('useTldrawSettingsPersistence');
+
     initializeUserPreferences().then((savedPrefs) => {
       editor.user.updateUserPreferences(savedPrefs);
     });
@@ -21,23 +24,27 @@ export function useTldrawSettingsPersistence(editor: Editor | null): void {
     });
   }, [editor]);
 
-  useReactor(
-    'save-grid-mode',
-    () => {
-      if (!editor) return;
-      const isGridMode = editor.getInstanceState().isGridMode;
-      saveInstanceState({ isGridMode });
-    },
+  const isGridMode = useValue(
+    'isGridMode',
+    () => editor?.getInstanceState().isGridMode ?? null,
     [editor],
   );
 
-  useReactor(
-    'save-user-preferences',
-    () => {
-      if (!editor) return;
-      const userPrefs = editor.user.getUserPreferences();
-      saveUserPreferences(userPrefs);
-    },
+  useEffect(() => {
+    if (isGridMode === null) return;
+    console.log('save-grid-mode fired', { isGridMode });
+    saveInstanceState({ isGridMode });
+  }, [isGridMode]);
+
+  const userPrefs = useValue(
+    'userPrefs',
+    () => editor?.user.getUserPreferences() ?? null,
     [editor],
   );
+
+  useEffect(() => {
+    if (!userPrefs) return;
+    console.log('save-user-preferences fired');
+    saveUserPreferences(userPrefs);
+  }, [userPrefs]);
 }

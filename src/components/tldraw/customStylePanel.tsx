@@ -1,7 +1,7 @@
 import { ColorPicker } from 'antd'
 import React, { useEffect } from 'react'
 import { useRef } from 'react'
-import { Editor, useEditor, DefaultStylePanelContent, DefaultStylePanel, TldrawUiSlider, DefaultColorStyle, TldrawUiToolbar,
+import { Editor, useEditor, useValue, DefaultStylePanelContent, DefaultStylePanel, TldrawUiSlider, DefaultColorStyle, TldrawUiToolbar,
     StylePanelButtonPicker,
     TLShape
 } from 'tldraw'
@@ -26,33 +26,18 @@ const STYLES = {
 export const CustomStylePanel = () => {
     console.log("call CustomStylePanel")
     const editor = useEditor()
-    let selectedShape = editor.getOnlySelectedShape()
-   
-     const [selectedShapeId, setSelectedShapeId] = React.useState<string | null>(null);
-    useEffect(() => {
-        const handleSelectionChange = () => {
+
+    const selectedShapeId = useValue(
+        'selectedShapeId',
+        () => {
             console.log("test21")
-            const currentShape = editor.getOnlySelectedShape();
-            const currentId = currentShape?.id || null;
-            
-            // Only update if the selected shape ID actually changed
-            if (currentId !== selectedShapeId) {
-                console.log("Selection changed, updating selectedShapeId");
-                setSelectedShapeId(currentId);
-            }
-        };
-        
-        // Subscribe to store changes (this includes selection changes)
-        const unsubscribe = editor.store.listen(handleSelectionChange);
-        
-        return () => {
-            unsubscribe();
-        };
-    }, [editor, selectedShapeId]);
+            return editor.getOnlySelectedShape()?.id ?? null
+        },
+        [editor]
+    )
 
-
-
-    let isIconSelected = selectedShape?.meta?.type === 'icon';
+    const selectedShape = selectedShapeId ? editor.getOnlySelectedShape() : null
+    const isIconSelected = selectedShape?.meta?.type === 'icon'
 
     const theme = editor.getCurrentTheme()
     const SVGStrokSlider = () => {
